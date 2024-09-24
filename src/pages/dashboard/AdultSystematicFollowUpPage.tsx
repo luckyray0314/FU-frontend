@@ -565,7 +565,7 @@ export default function AdultSystematicFollowUpPage() {
                     }}
                   >
                     <Typography sx={{ color: '#FF5252' }}>
-                      {t('Systematic.CompletedVSNonResponsive')}
+                    {t('Systematic.CompletedVSNonResponsive').substring(9)}
                     </Typography>
                   </Box>
                 </Stack>

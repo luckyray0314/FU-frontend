@@ -244,7 +244,7 @@ export default function Score15Page({
               )}
 
               <StyledRating>
-                {[...Array(5)].map((_it, index) => (
+                {[...Array(4)].map((_it, index) => (
                   <RatingButton
                     key={index}
                     isSelected={
