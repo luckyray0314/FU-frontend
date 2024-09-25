@@ -669,7 +669,7 @@ export default function AdultSystematicFollowUpPage() {
                         fontWeight='600'
                         variant='h5'
                       >
-                        {filterResult[filter].ors}
+                        {filterResult[filter].ors}%
                       </Typography>
                       {/* <StatusCircle variant="large" status={filterResult[filter].status} /> */}
                     </Stack>
