@@ -69,7 +69,7 @@ export const RatingButton = (props: RatingButtonProps) => {
       className={isSelected ? "active" : ""}
       onClick={() => onChange(value)}
     >
-      {customIcons[value].icon}
+      {/* {customIcons[value].icon} */}
       <Typography color={customIcons[value].color}>{customIcons[value].label}</Typography>
     </Stack>
   );
