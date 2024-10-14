@@ -7,6 +7,8 @@ import {
   Stack,
   TextField,
   Typography,
+  MenuItem,
+  Menu
 } from '@mui/material';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -39,6 +41,7 @@ import ViewIcon from '@mui/icons-material/RemoveRedEye';
 import EditCaseModal from '../../core/components/modal/case/EditCaseModal';
 import DeleteCaseModal from '../../core/components/modal/case/DeleteCaseModal';
 import { t } from 'i18next';
+import { ArrowDropDownIcon } from '@mui/x-date-pickers';
 
 const getStatusTranslation = (status: string) => {
   if (
@@ -74,6 +77,8 @@ export default function CaseListPage() {
 
   const [searchString, setSearchString] = useState('');
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [activeOngoingTabIndex, setActiveOngoingTabIndex] = useState(0);
+  const [dropdownAnchorEl, setDropdownAnchorEl] = useState<HTMLElement | null>(null);
   const [openEditCase, setOpenEditCase] = useState<boolean>(false);
   const [openDeleteCase, setOpenDeleteCase] = useState<boolean>(false);
   const [loadAgain, setLoadAgain] = useState<boolean>(false);
@@ -122,7 +127,11 @@ export default function CaseListPage() {
         renderCell: (
           props: GridRenderCellParams<any, any, any, GridTreeNodeWithRender>
         ) => {
-          if (props?.value) return <HistorySummary data={props.value} />;
+          if (props?.value) 
+            {
+              // console.log("children value=========>",props.value)
+              return <HistorySummary data={props.value} />;
+            }
         },
       },
       {
@@ -187,10 +196,27 @@ export default function CaseListPage() {
     [t]
   );
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTabIndex(newValue);
+
+    // If first tab is clicked, show dropdown
   };
 
+  const handleOngoingTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveOngoingTabIndex(newValue);
+    // If first tab is clicked, show dropdown
+  }; 
+  // Handle dropdown close
+  const handleClose = () => {
+    setDropdownAnchorEl(null);
+  };
+  const handleTabClick = (event: React.SyntheticEvent) => {
+    setDropdownAnchorEl(event.currentTarget as HTMLElement);
+  }
+  const handleDropdownSelect = (tabIndex: number) => {
+    setActiveTabIndex(tabIndex); // Switch to the selected tab
+    // setDropdownAnchorEl(null); // Close the dropdown after selection
+  };
   const handleViewClick = (codeNumber: string) => () => {
     navigate(estimatesPath(codeNumber));
     const found = caseList?.find((item) => item?.codeNumber === codeNumber);
@@ -235,41 +261,52 @@ export default function CaseListPage() {
 
   const filteredRows = isAdmin
     ? caseList?.length > 0
-      ? (activeTabIndex === 0
-          ? caseList?.filter((row) => row.status !== SurveyStatus.Archived)
-          : caseList.filter(
-              (row) =>
-                row.status ===
-                (activeTabIndex === 1
-                  ? SurveyStatus.Clear
-                  : activeTabIndex === 2
-                  ? SurveyStatus.Coming
-                  : activeTabIndex === 3
-                  ? SurveyStatus.Loss
-                  : activeTabIndex === 4
-                  ? SurveyStatus.Cancelled
-                  : SurveyStatus.Archived)
-            )
-        ).filter((row) => row.codeNumber.includes(searchString))
-      : []
-    : caseListFilter?.length > 0
-    ? (activeTabIndex === 0
-        ? caseListFilter
-        : caseListFilter.filter(
-            (row: any) =>
-              row?.status ===
-              (activeTabIndex === 1
+    ? (activeTabIndex === 1
+        ? caseList?.filter((row) => row.status !== SurveyStatus.Archived)
+        : caseList.filter((row) => {
+            const statusToCheck =
+              activeTabIndex === 2
                 ? SurveyStatus.Clear
-                : activeTabIndex === 2
+                : activeTabIndex === 0
                 ? SurveyStatus.Coming
                 : activeTabIndex === 3
                 ? SurveyStatus.Loss
                 : activeTabIndex === 4
-                ? SurveyStatus.Cancelled
-                : SurveyStatus.Archived)
-          )
-      ).filter((row: any) => row?.codeNumber.includes(searchString))
-    : [];
+                ? [SurveyStatus.Cancelled, SurveyStatus.Archived] // Return an array for both statuses
+                : SurveyStatus.Archived;
+  
+            // Check if the statusToCheck is an array
+            if (Array.isArray(statusToCheck)) {
+              return statusToCheck.includes(row.status); // Check if row.status is in the array
+            }
+  
+            return row.status === statusToCheck; // For other cases, check for equality
+          })
+      ).filter((row) => row.codeNumber.includes(searchString))
+    : []
+    : caseListFilter?.length > 0
+    ? (activeTabIndex === 1
+      ? caseList?.filter((row) => row.status !== SurveyStatus.Archived)
+      : caseList.filter((row) => {
+          const statusToCheck =
+            activeTabIndex === 2
+              ? SurveyStatus.Clear
+              : activeTabIndex === 0
+              ? SurveyStatus.Coming
+              : activeTabIndex === 3
+              ? SurveyStatus.Loss
+              : activeTabIndex === 4
+              ? [SurveyStatus.Cancelled, SurveyStatus.Archived] // Return an array for both statuses
+              : SurveyStatus.Archived;
+
+          // Check if the statusToCheck is an array
+          if (Array.isArray(statusToCheck)) {
+            return statusToCheck.includes(row.status); // Check if row.status is in the array
+          }
+
+          return row.status === statusToCheck; // For other cases, check for equality
+        })
+    ).filter((row) => row.codeNumber.includes(searchString)): [];
 
   const getThreeNumber = (number: string) => {
     if (number.length == 1) {
@@ -339,44 +376,140 @@ export default function CaseListPage() {
           <CardContent sx={{ padding: 0 }}>
             <Box>
               {isAdmin ? (
+                <Box sx={{display:'flex',alignItems:'center'}}>     
+                  <StyledTabs
+                    value={activeTabIndex}
+                    onChange={handleTabChange}
+                    aria-label='basic tabs example'
+                  >
+                    <StyledTab
+                    onClick={()=>setActiveOngoingTabIndex(0)}
+                    icon={(
+                        caseList?.filter(
+                          (data) => data.status === SurveyStatus.Coming
+                        ).length || 0
+                    ).toString()}
+                    label={t('CaseList.Ongoing')}
+                  />
+                {activeOngoingTabIndex == 0 ?
+                    <StyledTab
+                    onClick={handleTabClick}
+                    icon={<Box sx={{ml:4}}>{(
+                      (caseList?.length || 0) -
+                        caseList?.filter(
+                          (data) => data.status === SurveyStatus.Archived
+                        ).length || 0
+                    ).toString()}</Box>}
+                    label={<Box sx={{display:'flex',alignItems:'center'}}>{t('CaseList.AllCodeNumber')}<ArrowDropDownIcon sx={{fontSize:'30px'}}/></Box>}
+                  />
+                  :<></>                
+              }
+                    {activeTabIndex == 2 ?
+                      <StyledTab
+                      onClick={handleTabClick}
+                      icon={<Box sx={{ml:4}}>{(
+                          caseList?.filter(
+                            (data) => data.status === SurveyStatus.Clear
+                          ).length || 0
+                      ).toString()}</Box>}
+                      label={<Box sx={{display:'flex',alignItems:'center'}}>{t('CaseList.FullyAnswered')}<ArrowDropDownIcon sx={{fontSize:'30px'}}/></Box>}
+                      />:<></>                  
+                    }               
+                    {activeTabIndex == 3 ?
+                      <StyledTab
+                      onClick={handleTabClick}
+                      icon={<Box sx={{ml:4}}>{(
+                          caseList?.filter(
+                            (data) => data.status === SurveyStatus.Loss
+                          ).length || 0
+                      ).toString()}</Box>}
+                      label={<Box sx={{display:'flex',alignItems:'center'}}>{t('CaseList.ActionRequired')}<ArrowDropDownIcon sx={{fontSize:'30px'}}/></Box>}
+                    />
+                    :<></>}
+                    {/* <StyledTab
+                      icon={(
+                        caseList?.filter(
+                          (data) => data.status === SurveyStatus.Cancelled
+                        ).length || 0
+                      ).toString()}
+                      label={t('Status.Cancelled')}
+                    /> */}
+                    {activeTabIndex == 4 ?
+                      <StyledTab
+                        onClick={handleTabClick}
+                        icon={<Box sx={{ml:6}}>{(
+                          caseList?.filter(
+                            (data) => data.status === SurveyStatus.Archived || data.status === SurveyStatus.Cancelled
+                          ).length || 0
+                        ).toString()}</Box>}
+                        label={<Box sx={{display:'flex',pr:2,alignItems:'center'}}>{t('Status.Archived')}<ArrowDropDownIcon sx={{fontSize:'30px', mr:2}}/></Box>}
+                      />
+                    :<></>}
+                  </StyledTabs>
+                <Menu
+        anchorEl={dropdownAnchorEl}
+        open={Boolean(dropdownAnchorEl)}
+        onClose={handleClose}
+      >
+        <MenuItem onClick={() => {setActiveTabIndex(1);handleClose();setActiveOngoingTabIndex(0)}} sx={{ml:'5px'}}>{t('CaseList.AllCodeNumber')}</MenuItem>
+        <MenuItem onClick={() => {setActiveTabIndex(2);handleClose();setActiveOngoingTabIndex(1)}} sx={{ml:'5px'}}>{t('CaseList.FullyAnswered')}</MenuItem>
+        {/* <MenuItem onClick={() => {setActiveTabIndex(2);handleClose();setActiveOngoingTabIndex(1)}} sx={{ml:'5px'}}>{t('CaseList.Ongoing')}</MenuItem> */}
+        <MenuItem onClick={() => {setActiveTabIndex(3);handleClose();setActiveOngoingTabIndex(3)}} sx={{ml:'5px'}}>{t('CaseList.ActionRequired')}</MenuItem>
+        <MenuItem onClick={() => {setActiveTabIndex(4);handleClose();setActiveOngoingTabIndex(4)}} sx={{ml:'5px'}}>{t('Status.Archived')}</MenuItem>
+      </Menu>
+                </Box>
+              ) : (
+                <Box sx={{display:'flex'}}>
+                  
                 <StyledTabs
                   value={activeTabIndex}
                   onChange={handleTabChange}
                   aria-label='basic tabs example'
                 >
                   <StyledTab
-                    icon={(
-                      (caseList?.length || 0) -
-                        caseList?.filter(
-                          (data) => data.status === SurveyStatus.Archived
-                        ).length || 0
-                    ).toString()}
-                    label={t('CaseList.AllCodeNumber')}
-                  />
+                  onClick={()=>setActiveOngoingTabIndex(0)}
+                  icon={(
+                    caseList?.filter(
+                      (data) => data.status === SurveyStatus.Coming
+                    ).length || 0
+                  ).toString()}
+                  label={t('CaseList.Ongoing')}
+                />
+              {activeOngoingTabIndex == 0?
                   <StyledTab
+                  onClick={handleTabClick}
+                  icon={(
+                    (caseList?.length || 0) -
+                      caseList?.filter(
+                        (data) => data.status === SurveyStatus.Archived
+                      ).length || 0
+                  ).toString()}
+                  label={<Box sx={{display:'flex',alignItems:'center'}}>{t('CaseList.AllCodeNumber')}<ArrowDropDownIcon sx={{fontSize:'30px'}}/></Box>}
+                />
+                :<></>                
+            }
+                  {activeTabIndex == 2 ?
+                    <StyledTab
+                    onClick={handleTabClick}
                     icon={(
                       caseList?.filter(
                         (data) => data.status === SurveyStatus.Clear
                       ).length || 0
                     ).toString()}
-                    label={t('CaseList.FullyAnswered')}
-                  />
-                  <StyledTab
-                    icon={(
-                      caseList?.filter(
-                        (data) => data.status === SurveyStatus.Coming
-                      ).length || 0
-                    ).toString()}
-                    label={t('CaseList.Ongoing')}
-                  />
-                  <StyledTab
+                    label={<Box sx={{display:'flex',alignItems:'center'}}>{t('CaseList.FullyAnswered')}<ArrowDropDownIcon sx={{fontSize:'30px'}}/></Box>}
+                    />:<></>                  
+                  }               
+                  {activeTabIndex == 3 ?
+                    <StyledTab
+                    onClick={handleTabClick}
                     icon={(
                       caseList?.filter(
                         (data) => data.status === SurveyStatus.Loss
                       ).length || 0
                     ).toString()}
-                    label={t('CaseList.ActionRequired')}
+                    label={<Box sx={{display:'flex',alignItems:'center'}}>{t('CaseList.ActionRequired')}<ArrowDropDownIcon sx={{fontSize:'30px'}}/></Box>}
                   />
+                  :<></>}
                   {/* <StyledTab
                     icon={(
                       caseList?.filter(
@@ -385,71 +518,30 @@ export default function CaseListPage() {
                     ).toString()}
                     label={t('Status.Cancelled')}
                   /> */}
-                  <StyledTab
-                    icon={(
-                      caseList?.filter(
-                        (data) => data.status === SurveyStatus.Archived
-                      ).length || 0
-                    ).toString()}
-                    label={t('Status.Archived')}
-                  />
+                  {activeTabIndex == 4 ?
+                      <StyledTab
+                        onClick={handleTabClick}
+                        icon={<Box sx={{ml:4}}>{(
+                          caseList?.filter(
+                            (data) => data.status === SurveyStatus.Archived || data.status === SurveyStatus.Cancelled
+                          ).length || 0
+                        ).toString()}</Box>}
+                        label={<Box sx={{display:'flex',alignItems:'center'}}>{t('Status.Archived')}<ArrowDropDownIcon sx={{fontSize:'30px', mr:2}}/></Box>}
+                      />
+                  :<></>}
                 </StyledTabs>
-              ) : (
-                <StyledTabs
-                  value={activeTabIndex}
-                  onChange={handleTabChange}
-                  aria-label='basic tabs example'
-                >
-                  <StyledTab
-                    icon={(
-                      (caseListFilter?.length || 0) -
-                        caseListFilter?.filter(
-                          (data: any) => data.status === SurveyStatus.Archived
-                        ).length || 0
-                    ).toString()}
-                    label={t('CaseList.AllCodeNumber')}
-                  />
-                  <StyledTab
-                    icon={(
-                      caseListFilter?.filter(
-                        (data: any) => data.status === SurveyStatus.Clear
-                      ).length || 0
-                    ).toString()}
-                    label={t('CaseList.FullyAnswered')}
-                  />
-                  <StyledTab
-                    icon={(
-                      caseListFilter?.filter(
-                        (data: any) => data.status === SurveyStatus.Coming
-                      ).length || 0
-                    ).toString()}
-                    label={t('CaseList.Ongoing')}
-                  />
-                  <StyledTab
-                    icon={(
-                      caseListFilter?.filter(
-                        (data: any) => data.status === SurveyStatus.Loss
-                      ).length || 0
-                    ).toString()}
-                    label={t('CaseList.ActionRequired')}
-                  />
-                  {/* <StyledTab
-                    icon={(
-                      caseListFilter?.filter(
-                        (data: any) => data.status === SurveyStatus.Cancelled
-                      ).length || 0
-                    ).toString()}
-                    label={t('Status.Cancelled')}
-                  /> */}
-                  <StyledTab
-                    icon={(
-                      caseListFilter?.filter(
-                        (data: any) => data.status === SurveyStatus.Archived
-                      ).length || 0
-                    ).toString()}
-                    label={t('Status.Archived')}
-                  />
-                </StyledTabs>
+              <Menu
+                anchorEl={dropdownAnchorEl}
+                open={Boolean(dropdownAnchorEl)}
+                onClose={handleClose}
+              >
+                <MenuItem onClick={() => {setActiveTabIndex(1);handleClose();setActiveOngoingTabIndex(0)}} sx={{ml:'5px'}}>{t('CaseList.AllCodeNumber')}</MenuItem>
+                <MenuItem onClick={() => {setActiveTabIndex(2);handleClose();setActiveOngoingTabIndex(1)}} sx={{ml:'5px'}}>{t('CaseList.FullyAnswered')}</MenuItem>
+                {/* <MenuItem onClick={() => {setActiveTabIndex(2);handleClose();setActiveOngoingTabIndex(1)}} sx={{ml:'5px'}}>{t('CaseList.Ongoing')}</MenuItem> */}
+                <MenuItem onClick={() => {setActiveTabIndex(3);handleClose();setActiveOngoingTabIndex(3)}} sx={{ml:'5px'}}>{t('CaseList.ActionRequired')}</MenuItem>
+                <MenuItem onClick={() => {setActiveTabIndex(4);handleClose();setActiveOngoingTabIndex(4)}} sx={{ml:'5px'}}>{t('Status.Archived')}</MenuItem>
+              </Menu>
+              </Box>
               )}
             </Box>
             <TabPanel>
@@ -491,7 +583,6 @@ export default function CaseListPage() {
                     const selectedRowsData = ids.map((id) =>
                       rows.find((row) => row.id === id)
                     );
-                    console.log(selectedRowsData);
                     setRowSelectionModel(ids);
                     setSelectedCases(selectedRowsData);
                   }}

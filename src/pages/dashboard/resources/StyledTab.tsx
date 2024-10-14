@@ -12,7 +12,7 @@ const StyledTab = styled((props: TabProps) => (
   <Tab
     {...props}
     disableRipple
-    icon={<Typography sx={{ fontSize: "70px", fontWeight: 700, lineHeight: "60px" }}>{props.icon}</Typography>}
+    icon={<Typography sx={{fontSize: "65px", fontWeight: 700, lineHeight: "60px" }}>{props.icon}</Typography>}
     iconPosition="start"
     label={<Typography sx={{ fontSize: "18px", fontWeight: 600, textAlign: "left", lineHeight: "30px" }}>{props.label}</Typography>}
     {...a11yProps()}
@@ -23,9 +23,9 @@ const StyledTab = styled((props: TabProps) => (
   textTransform: "capitalize",
   color: "#839BAA",
   flex: 1,
-  padding: "16px 32px",
+  padding: "16px 10px",
   alignItems: "start",
-  maxWidth: "300px",
+  maxWidth: "500px",
   '&.Mui-selected': {
     zIndex: 2,
     color: "#334957",
